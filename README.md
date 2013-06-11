@@ -18,9 +18,10 @@ pmtlock is a guest side optimization, and thus can be used as a complementary
 technique to host side optimizations such as co-scheduling and Pause-Loop Exiting.
 
 ## Implementation
-There are two stages in the lock function: preemptable loop and spinning
+There are two stages in the lock function: preemptable loop and spinning loop, which are described briefly below. For more details, please refer to the paper 
+"Preemptable Ticket Spinlocks: Improving Consolidated Performance in the Cloud"
 
-### preemptable loop
+The spinning loop is basically a unfair spinlock that ensure mutual exclusions between waiter. The preemptable loop, on the other hand, is more interesting and is the core algorithm.
 
 timeout =  TIMEOUT_UNIT * (inc.tail - inc.head);
 do {
@@ -46,5 +47,5 @@ Note that the ticket value is possible to overflow and wrap around. In this case
 that is smaller than current queue head. This is also captured by t < 0. This is a boundary case, because of
 which we may temporarily lose some fairness, but it does not influence the correctness of mutual exclusion.
 
-For more details, please refer to the paper 
-"Preemptable Ticket Spinlocks: Improving Consolidated Performance in the Cloud"
+### preemptable loop
+
