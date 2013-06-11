@@ -23,6 +23,7 @@ There are two stages in the lock function: preemptable loop and spinning loop, w
 
 The spinning loop is basically a unfair spinlock that ensure mutual exclusions between waiter. The preemptable loop, on the other hand, is more interesting and is the core algorithm.
 
+`
 timeout =  TIMEOUT_UNIT * (inc.tail - inc.head);
 do {
 	current_head = ACCESS_ONCE(lock->tickets.head);
@@ -32,6 +33,7 @@ do {
 	}
 	cpu_relax();
 } while (timeout-- > 0);
+`
 
 In preeemptable loop, a timeout is maintained to detect long time waiting.
 It is calculated by the position of a node in queue, that is (ticket - current_head),
