@@ -6,7 +6,7 @@ ouyang@cs.pitt.edu
 ## Introduction
 Preemptable Ticket Spinlock (pmtlock) is a lock algorithm designed for virtual
 environment proposed by Jiannan Ouyang in his VEE 2013 paper, 
-"Preemptable Ticket Spinlocks: Improving Consolidated Performance in the Cloud"
+"[Preemptable Ticket Spinlocks: Improving Consolidated Performance in the Cloud](http://www.cs.pitt.edu/~ouyang/files/publication/preemptable_lock-ouyang-vee13.pdf)"
 
 The idea is to sacrifices fairness to ensure forward progress upon preemption, 
 but also preserve fairness whenever possible. To this end, it allows a fair lock 
