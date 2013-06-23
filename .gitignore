@@ -1,0 +1,7 @@
+*.o
+*.cmd
+Module.symvers
+modules.order
+pmtlock.ko
+pmtlock.mod.c
+.tmp_versions/
