@@ -1,0 +1,105 @@
+diff --git a/arch/x86/include/asm/spinlock.h b/arch/x86/include/asm/spinlock.h
+index 33692ea..1409955 100644
+--- a/arch/x86/include/asm/spinlock.h
++++ b/arch/x86/include/asm/spinlock.h
+@@ -47,18 +47,33 @@
+  * in the high part, because a wide xadd increment of the low part would carry
+  * up and contaminate the high part.
+  */
++#define TIMEOUT_UNIT (1<<14)
+ static __always_inline void __ticket_spin_lock(arch_spinlock_t *lock)
+ {
+ 	register struct __raw_tickets inc = { .tail = 1 };
++	int timeout = 0;
++	__ticket_t current_head;
+ 
+ 	inc = xadd(&lock->tickets, inc);
+-
++	if (likely(inc.head == inc.tail))
++		goto spin;
++
++	timeout =  TIMEOUT_UNIT * (inc.tail - inc.head);
++	do {
++		current_head = ACCESS_ONCE(lock->tickets.head);
++		if (inc.head != current_head) {
++			inc.head = current_head;
++			timeout =  TIMEOUT_UNIT * (inc.tail - inc.head);
++		}
++		cpu_relax();
++	} while (timeout-- > 0);
++spin:
+ 	for (;;) {
+-		if (inc.head == inc.tail)
+-			break;
++		if (xchg(&lock->lock, 1) == 0)
++			goto out;
+ 		cpu_relax();
+-		inc.head = ACCESS_ONCE(lock->tickets.head);
+ 	}
++out:
+ 	barrier();		/* make sure nothing creeps before the lock is taken */
+ }
+ 
+@@ -66,26 +81,31 @@ static __always_inline int __ticket_spin_trylock(arch_spinlock_t *lock)
+ {
+ 	arch_spinlock_t old, new;
+ 
+-	old.tickets = ACCESS_ONCE(lock->tickets);
++	*(u64 *)&old = ACCESS_ONCE(*(u64 *)lock);
+ 	if (old.tickets.head != old.tickets.tail)
+ 		return 0;
++	if (ACCESS_ONCE(lock->lock) == 1)
++		return 0;
+ 
+ 	new.head_tail = old.head_tail + (1 << TICKET_SHIFT);
+-
++	new.lock = 1;
+ 	/* cmpxchg is a full barrier, so nothing can move before it */
+-	return cmpxchg(&lock->head_tail, old.head_tail, new.head_tail) == old.head_tail;
++	if (cmpxchg((u64 *)lock, *(u64 *)&old, *(u64 *)&new) == *(u64 *)&old) { 
++		return 1;
++	} else return 0;
+ }
+ 
+ static __always_inline void __ticket_spin_unlock(arch_spinlock_t *lock)
+ {
+ 	__add(&lock->tickets.head, 1, UNLOCK_LOCK_PREFIX);
++	xchg(&lock->lock, 0);
+ }
+ 
+ static inline int __ticket_spin_is_locked(arch_spinlock_t *lock)
+ {
+ 	struct __raw_tickets tmp = ACCESS_ONCE(lock->tickets);
+ 
+-	return tmp.tail != tmp.head;
++	return (tmp.tail != tmp.head) || (ACCESS_ONCE(lock->lock)==1);
+ }
+ 
+ static inline int __ticket_spin_is_contended(arch_spinlock_t *lock)
+diff --git a/arch/x86/include/asm/spinlock_types.h b/arch/x86/include/asm/spinlock_types.h
+index ad0ad07..149436d 100644
+--- a/arch/x86/include/asm/spinlock_types.h
++++ b/arch/x86/include/asm/spinlock_types.h
+@@ -8,8 +8,8 @@
+ #include <linux/types.h>
+ 
+ #if (CONFIG_NR_CPUS < 256)
+-typedef u8  __ticket_t;
+-typedef u16 __ticketpair_t;
++typedef u16  __ticket_t;
++typedef u32 __ticketpair_t;
+ #else
+ typedef u16 __ticket_t;
+ typedef u32 __ticketpair_t;
+@@ -24,9 +24,10 @@ typedef struct arch_spinlock {
+ 			__ticket_t head, tail;
+ 		} tickets;
+ 	};
++	u16 lock;
+ } arch_spinlock_t;
+ 
+-#define __ARCH_SPIN_LOCK_UNLOCKED	{ { 0 } }
++#define __ARCH_SPIN_LOCK_UNLOCKED	{ { 0}, 0 }
+ 
+ #include <asm/rwlock.h>
+ 
