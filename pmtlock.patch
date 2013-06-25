@@ -113,7 +113,7 @@ index 5cdd806..a50563f 100644
  #include <linux/debug_locks.h>
  #include <linux/export.h>
  
-+u64 pmtlock_timeout_unit = 1UL<<40;
++u64 pmtlock_timeout_unit = 1UL<<10;
 +EXPORT_SYMBOL(pmtlock_timeout_unit);
 +
  /*
