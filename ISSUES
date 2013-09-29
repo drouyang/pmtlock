@@ -1,0 +1,5 @@
+pmtlock-v1.0 is published in the VEE 2013 paper "Preemptable Ticket Spinlock", 
+tested on kernel 3.5.0.
+
+v1.0 patch is found not working correctly with kernels newer than 3.9.x. 
+v2.0 patch is under development to fix this issue.

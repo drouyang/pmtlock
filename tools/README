@@ -1,0 +1,2 @@
+A kernel module used to tune timeout parameter
+Currently only support v2.0 patch, but it's not hard to backport it.

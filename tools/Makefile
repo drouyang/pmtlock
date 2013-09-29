@@ -1,4 +1,5 @@
-KERNEL_DIR=../../linux-3.10-rc5/
+KERNEL_DIR=
+../../linux/
 
 obj-m += pmtlock.o
 
