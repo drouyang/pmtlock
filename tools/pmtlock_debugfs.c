@@ -33,7 +33,7 @@ int pmtlock_init_debugfs(void)
         return -1;
     }
 
-    debugfs_create_u64("pmtlock_timeout_unit", 0644, d_pmtlock_debugfs, &pmtlock_timeout_unit);
+    debugfs_create_u64("pmtlock_timeout_shift", 0644, d_pmtlock_debugfs, &pmtlock_timeout_shift);
 
     return 0;
 }
