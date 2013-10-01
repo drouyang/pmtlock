@@ -3,9 +3,9 @@ Jiannan Ouyang
 ouyang@cs.pitt.edu
 06/2013
 
-Current stable:  pmtlock-v2.0 
-
 # Introduction 
+Current stable:  **pmtlock-v2.0** 
+
 Preemptable Ticket Spinlock (pmtlock) is a lock algorithm designed for virtual
 environment proposed by Jiannan Ouyang and John Lange in their VEE 2013 paper, 
 "[Preemptable Ticket Spinlocks: Improving Consolidated Performance in the Cloud](http://www.cs.pitt.edu/~ouyang/files/publication/preemptable_lock-ouyang-vee13.pdf)"
