@@ -11,10 +11,9 @@ environment proposed by Jiannan Ouyang and John Lange in their VEE 2013 paper,
 
 This algorithm tackles the lock preemption problem in virtual environment, more
 specifically, the lock waiter preemption problem.  The intuition is to
-sacrifices fairness to ensure forward progress upon preemption, but also
-preserve fairness whenever possible. It downgrades a fair lock to an unfair
-lock when a lock waiter is preempted to prevent later waiters from waiting on
-an available lock.
+sacrifice fairness to ensure forward progress upon preemption by allow waiters to
+acquire locks out of order when an earlier waiter is preempted.  It thus prevents later
+waiters from waiting on an available lock.
 
 For more details, please refer to our [paper](http://www.cs.pitt.edu/~ouyang/files/publication/preemptable_lock-ouyang-vee13.pdf) 
 
