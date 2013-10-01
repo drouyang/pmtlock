@@ -1,11 +1,10 @@
-KERNEL_DIR=
-../../linux/
+KERNEL_DIR=../../linux/
 
 obj-m += pmtlock.o
 
 pmtlock-objs := \
-    src/pmtlock_main.o\
-    src/pmtlock_debugfs.o
+    pmtlock_main.o\
+    pmtlock_debugfs.o
 
 all:
 	make -C $(KERNEL_DIR) M=$(PWD) modules
