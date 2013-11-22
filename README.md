@@ -24,9 +24,13 @@ A kernel module is provided to tune timeout parameter online for v2.0 patch.
 ## Updates
 ### 01/10/2013
 
-v1.0 was published in the VEE 2013 paper. Later I found it has problem
-with wrapped-around ticket values. This problem is fixed in the v2.0 patch. 
+v1.0 was published in the VEE 2013 paper. 
 
-v1.0 is also known to have problems with newer kernels. v2.0 patch is tested on
-kernel-3.5.0. I'm working on porting it to newer kernels.
+v2.0 patch fixes a wrapped-around ticket values bug. It has been tested on 8
+core machine running kernel 3.5 and 32 core machines with kernel 3.11.
+
+### 11/22/2013
+Linux kernel 3.12 upstreamed the pv_lock patch, which is not compatible with
+current pmtlock implementation.  Porting work is still under going.
+
 
