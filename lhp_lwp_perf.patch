@@ -1,0 +1,121 @@
+LHP and LWP profiling
+
+From: Jiannan Ouyang <ouyang@cs.pitt.edu>
+
+
+---
+ arch/x86/include/asm/spinlock.h |   28 +++++++++++++++++++++++-----
+ include/linux/spinlock.h        |    3 +++
+ include/linux/spinlock_types.h  |    2 ++
+ kernel/spinlock.c               |    7 +++++++
+ 4 files changed, 35 insertions(+), 5 deletions(-)
+
+diff --git a/arch/x86/include/asm/spinlock.h b/arch/x86/include/asm/spinlock.h
+index 33692ea..56ae478 100644
+--- a/arch/x86/include/asm/spinlock.h
++++ b/arch/x86/include/asm/spinlock.h
+@@ -47,18 +47,36 @@
+  * in the high part, because a wide xadd increment of the low part would carry
+  * up and contaminate the high part.
+  */
++extern u64 waiting_threshold;
++extern u64 LHP;
++extern u64 LWP;
+ static __always_inline void __ticket_spin_lock(arch_spinlock_t *lock)
+ {
+ 	register struct __raw_tickets inc = { .tail = 1 };
++  raw_spinlock_t * raw = container_of(lock, raw_spinlock_t, raw_lock);
++  unsigned count = waiting_threshold;
++  unsigned flag = 1;
+ 
+ 	inc = xadd(&lock->tickets, inc);
+ 
+ 	for (;;) {
+-		if (inc.head == inc.tail)
+-			break;
+-		cpu_relax();
+-		inc.head = ACCESS_ONCE(lock->tickets.head);
+-	}
++
++    do {
++      if (inc.head == inc.tail)
++        goto out;
++      cpu_relax();
++      inc.head = ACCESS_ONCE(lock->tickets.head);
++    } while (--count);
++    if (flag && raw->owner_cpu == -1) { /* free lock */
++      LWP++;
++      flag = 0;
++    } else {
++      LHP++;
++      flag = 0;
++    }
++    count = waiting_threshold;
++  }
++out:
+ 	barrier();		/* make sure nothing creeps before the lock is taken */
+ }
+ 
+diff --git a/include/linux/spinlock.h b/include/linux/spinlock.h
+index 7d537ce..115b453 100644
+--- a/include/linux/spinlock.h
++++ b/include/linux/spinlock.h
+@@ -138,6 +138,7 @@ static inline void do_raw_spin_lock(raw_spinlock_t *lock) __acquires(lock)
+ {
+ 	__acquire(lock);
+ 	arch_spin_lock(&lock->raw_lock);
++  lock->owner_cpu = 1;
+ }
+ 
+ static inline void
+@@ -145,10 +146,12 @@ do_raw_spin_lock_flags(raw_spinlock_t *lock, unsigned long *flags) __acquires(lo
+ {
+ 	__acquire(lock);
+ 	arch_spin_lock_flags(&lock->raw_lock, *flags);
++  lock->owner_cpu = 1;
+ }
+ 
+ static inline int do_raw_spin_trylock(raw_spinlock_t *lock)
+ {
++  lock->owner_cpu = -1;
+ 	return arch_spin_trylock(&(lock)->raw_lock);
+ }
+ 
+diff --git a/include/linux/spinlock_types.h b/include/linux/spinlock_types.h
+index 73548eb..af43d9a 100644
+--- a/include/linux/spinlock_types.h
++++ b/include/linux/spinlock_types.h
+@@ -19,6 +19,7 @@
+ 
+ typedef struct raw_spinlock {
+ 	arch_spinlock_t raw_lock;
++	int owner_cpu;
+ #ifdef CONFIG_GENERIC_LOCKBREAK
+ 	unsigned int break_lock;
+ #endif
+@@ -53,6 +54,7 @@ typedef struct raw_spinlock {
+ #define __RAW_SPIN_LOCK_INITIALIZER(lockname)	\
+ 	{					\
+ 	.raw_lock = __ARCH_SPIN_LOCK_UNLOCKED,	\
++  .owner_cpu = -1, \
+ 	SPIN_DEBUG_INIT(lockname)		\
+ 	SPIN_DEP_MAP_INIT(lockname) }
+ 
+diff --git a/kernel/spinlock.c b/kernel/spinlock.c
+index 5cdd806..73cf76a 100644
+--- a/kernel/spinlock.c
++++ b/kernel/spinlock.c
+@@ -21,6 +21,13 @@
+ #include <linux/debug_locks.h>
+ #include <linux/export.h>
+ 
++u64 waiting_threshold = (1UL << 10);
++EXPORT_SYMBOL(waiting_threshold);
++u64 LHP = 0;
++EXPORT_SYMBOL(LHP);
++u64 LWP = 0;
++EXPORT_SYMBOL(LWP);
++
+ /*
+  * If lockdep is enabled then we use the non-preemption spin-ops
+  * even on CONFIG_PREEMPT, because lockdep assumes that interrupts are

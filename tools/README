@@ -1,2 +1,6 @@
-A kernel module used to tune timeout parameter
-Currently only support v2.0 patch, but it's not hard to backport it.
+A kernel module used to inspect and tune kernel varibles
+
+Usage:
+1. Modify pmtlock_debugfs.c, add variables you want to inspect. Make sure the variable is exported.
+2. make
+3. read from debugfs /sys/kernel/debug/pmtlock/
