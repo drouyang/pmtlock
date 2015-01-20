@@ -4,7 +4,7 @@ ouyang@cs.pitt.edu
 06/2013
 
 # Introduction 
-Current stable:  **pmtlock-v2.0** 
+Current stable:  **pmtlock-v2.0** (Linux 3.5 - 3.11)
 
 Preemptable Ticket Spinlock (pmtlock) is a lock algorithm designed for virtual
 environment proposed by Jiannan Ouyang and John Lange in their VEE 2013 paper, 
@@ -30,7 +30,5 @@ v2.0 patch fixes a wrapped-around ticket values bug. It has been tested on 8
 core machine running kernel 3.5 and 32 core machines with kernel 3.11.
 
 ### 11/22/2013
-Linux kernel 3.12 upstreamed the pv_lock patch, which is not compatible with
-current pmtlock implementation.  Porting work is still under going.
-
-
+Linux kernel 3.12 upstreamed the paravirt ticket spinlock patch, which changes
+the code layout. Pmtlock need to be ported to newer kernels before using.
