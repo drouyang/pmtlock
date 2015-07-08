@@ -3,14 +3,10 @@
  * Qihang Chen, Jianna Ouyang (ouyang@cs.pitt.edu)
  *
  * Methodology
- *
- *
- * Misc
- * set thread affinity in a linux kernel module 
- * The reason to use kthread_create_on_cpu is twofold:
- * 1) there's no way two kthreads on the same core are contending for a lock , its the scheduler's responsibility to schedule the kthreads on the same core
- * 2) if two kthreads are on the same core, there's no cache coherence issue for those two, which means the chances for the two threads to get a lock is the same
+ * N kernel threads on N cores competing for the same lock, the distribution of
+ * numbers of lock aquisitions indicates lock fairness
  */
+
 #include <linux/module.h> /* Needed by all modules */
 #include <linux/kernel.h> /* Needed for KERN_INFO */
 #include <linux/init.h>
@@ -29,6 +25,7 @@ unsigned long long lock_selected = SYSTEM_SPINLOCK;
 // number of conccurent kthread
 #define THREAD_NUM 6
 
+
 unsigned char naive_lock;
 spinlock_t lock;
 
@@ -44,6 +41,8 @@ spinlock_t finish_lock;
 
 struct timeval start;
 struct timeval end;
+
+unsigned long n_spin = 1000;
 
 void naive_spin_lock(unsigned char *lock) {
 	for (;;) {
@@ -90,6 +89,7 @@ void measure_spinlock(unsigned long long thread_id) {
 	while(lock_aquired < LOCK_NUM){
 		spin_lock_irqsave(&lock,flags);
 		lock_aquired++;
+		while (n_spin--);
 		spin_unlock_irqrestore(&lock, flags);
 		lock_cnts[thread_id]++;
 	}
