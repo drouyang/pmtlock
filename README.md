@@ -19,7 +19,7 @@ result, fairness is largely preserved.
 
 For more details, please refer to our paper "[Preemptable Ticket Spinlocks:
 Improving Consolidated Performance in the
-Cloud](http://www.cs.pitt.edu/~ouyang/files/publication/preemptable_lock-ouyang-vee13.pdf)"
+Cloud](http://dl.acm.org/citation.cfm?id=2451549)"
 in proceedings of the 9th ACM SIGPLAN/SIGOPS International Conference on
 Virtual Execution Environments (VEE '13).
 
