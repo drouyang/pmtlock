@@ -1,6 +1,14 @@
-A kernel module used to inspect and tune kernel varibles
+# Kernel Module: Parameter Tuning
 
-Usage:
-1. Modify pmtlock_debugfs.c, add variables you want to inspect. Make sure the variable is exported.
-2. make
-3. read from debugfs /sys/kernel/debug/pmtlock/
+### Author
+Jiannan Ouyang
+
+### Usage
+```sh
+$ make
+$ make install
+$ cat /sys/kernel/debug/pmtlock/pmtlock_timeout_shift
+$ echo 8 > /sys/kernel/debug/pmtlock/pmtlock_timeout_shift
+$ cat /sys/kernel/debug/pmtlock/pmtlock_timeout_shift
+$ make remove
+```
