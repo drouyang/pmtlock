@@ -1,0 +1,20 @@
+diff --git a/arch/x86/include/asm/spinlock.h b/arch/x86/include/asm/spinlock.h
+index 0964cfd..3576403 100644
+--- a/arch/x86/include/asm/spinlock.h
++++ b/arch/x86/include/asm/spinlock.h
+@@ -125,13 +125,13 @@ static __always_inline void arch_spin_lock(arch_spinlock_t *lock)
+ 		current_head = ACCESS_ONCE(lock->tickets.head);
+ 		if (__tickets_equal(current_head, inc.tail)) {
+ 			goto spin;
+-		} else if (!__tickets_equal(current_head, inc.head) && ((s16)(inc.tail - current_head) > 0)) {
++		} /* else if (!__tickets_equal(current_head, inc.head) && ((s16)(inc.tail - current_head) > 0)) {
+ 			// dynamic timout update when ticket head is updated. 
+ 			// This is complication, may not be necessary
+ 			// (s16)(tail - head) > 0 to filtered out waked up lock holder
+ 			inc.head = current_head;
+ 			timeout = __timeout_threshold(inc.head, inc.tail);
+-		}
++		} */
+ 		cpu_relax();
+ 	} while (timeout--);
+ 

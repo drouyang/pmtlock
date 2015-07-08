@@ -6,3 +6,4 @@ pmtlock.ko
 pmtlock.mod.c
 .tmp_versions/
 *.ko
+*.d
