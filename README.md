@@ -1,22 +1,26 @@
 # Preemptable Ticket Spinlock (pmtlock)
 Jiannan Ouyang
 ouyang@cs.pitt.edu
-06/2013
 
 # Introduction 
-Current stable:  **pmtlock-v2.0** (Linux 3.5 - 3.11)
+Current stable:  **pmtlock-v3.0** (Linux 3.12+), 07/2015
 
-Preemptable Ticket Spinlock (pmtlock) is a lock algorithm designed for virtual
-environment proposed by Jiannan Ouyang and John Lange in their VEE 2013 paper, 
-"[Preemptable Ticket Spinlocks: Improving Consolidated Performance in the Cloud](http://www.cs.pitt.edu/~ouyang/files/publication/preemptable_lock-ouyang-vee13.pdf)"
+Preemptable ticket spinlock (pmtlock) is a novel spinlock algorithm designed
+for virtual environments. It addresses the lock waiter preemption problem in
+ticket spinlocks, where a lock waiter in a FIFO queue is preempted and later
+waiters have to busy-wait even if the lock is already released.
 
-This algorithm tackles the lock preemption problem in virtual environment, more
-specifically, the lock waiter preemption problem.  The intuition is to
-sacrifice fairness to ensure forward progress upon preemption by allow waiters to
-acquire locks out of order when an earlier waiter is preempted.  It thus prevents later
-waiters from waiting on an available lock.
+Pmtlock sacrifice fairness to ensure forward progress upon and only upon lock
+waiter preemption by allowing waiters to acquire locks out of order when
+waiting longer than a threashold, which indicates one or more earlier waiters
+have been preempted.  The timeout threshold of each waiter is propotional to
+the number of previous waiters. As a result, fairness is largely preserved.
 
-For more details, please refer to our [paper](http://www.cs.pitt.edu/~ouyang/files/publication/preemptable_lock-ouyang-vee13.pdf) 
+For more details, please refer to our paper "[Preemptable Ticket Spinlocks:
+Improving Consolidated Performance in the
+Cloud](http://www.cs.pitt.edu/~ouyang/files/publication/preemptable_lock-ouyang-vee13.pdf)"
+In Proceedings of the 9th ACM SIGPLAN/SIGOPS International Conference on
+Virtual Execution Environments (VEE '13).
 
 # V3.0 Patch 
 ### pmtlock v3.0 (Linux 3.12+, tested on Linux 4.0)
