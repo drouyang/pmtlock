@@ -12,9 +12,9 @@ waiters have to busy-wait even if the lock is already released.
 
 The intuition of pmtlock is to sacrifice fairness to ensure forward progress
 only when lock waiter preemption happens. This goal is achieved by allowing
-waiters to acquire locks out of order when waiting longer than a threashold,
+waiters to acquire locks out of order when waiting longer than a threshold,
 which indicates one or more earlier waiters have been preempted. The timeout
-threshold of each waiter is propotional to the number of previous waiters. As a
+threshold of each waiter is proportional to the number of previous waiters. As a
 result, fairness is largely preserved.
 
 For more details, please refer to our paper "[Preemptable Ticket Spinlocks:
@@ -36,15 +36,15 @@ pmtlock-lt = pmtlock-compact + pmtlock-static
 * 2-pmtlock-static.patch: static timeout threshold update, this patch depends on 1-pmtlock-compact.patch
 
 # Tools
-* paramter: online tuning of the timeout parameter
-* lock\_fairness: create N kthreads on N cores, competing for the same lock and report lock aquisition distribution and the time consumed.
-* overhead: measure everage lock/unlock latency
+* parameter: online tuning of the timeout parameter
+* lock\_fairness: create N kthreads on N cores, competing for the same lock and report lock acquisition distribution and the time consumed.
+* overhead: measure average lock/unlock latency
 
 ## Updates
 
 ### 07/08/2015
-pmtlock-lt: Ported pmtlock to Linux 4.0.5, compatible with Linux 3.12+ (v3.0),
-with an optimized lightweight implementation. Added new kernel modules for
+pmtlock-lt: ported pmtlock to Linux 4.0.5, compatible with Linux 3.12+ (pmtlock-v3.0),
+augmented with an optimized lightweight implementation (pmtlock-lt). Added new kernel modules for
 evaluation.
 
 ### 11/22/2013
