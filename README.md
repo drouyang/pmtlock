@@ -18,10 +18,27 @@ waiters from waiting on an available lock.
 
 For more details, please refer to our [paper](http://www.cs.pitt.edu/~ouyang/files/publication/preemptable_lock-ouyang-vee13.pdf) 
 
+# V3.0 Patch 
+### pmtlock v3.0 (Linux 3.12+, tested on Linux 4.0)
+* pmtlock.patch
+
+### lightweight pmtlock (pmtlock-lt)
+pmtlock-lt = pmtlock-compact + pmtlock-static
+
+Patches:
+* 1-pmtlock-compact.patch: reduced lock size
+* 2-pmtlock-static.patch: static timeout threshold update
+
 # Tools
-A kernel module is provided to tune timeout parameter online for v2.0 patch.
+* paramter: online tuning of the timeout parameter
+* lock\_fairness: create N kthread on N cores, competing for the same lock and report lock aquisition distribution and time consumed.
+* overhead: measure everage lock/unlock latency
 
 ## Updates
+
+### 07/08/2014
+Ported pmtlock to Linux 3.12+ (v3.0). Added new kernel modules for evaluation.
+
 ### 01/10/2013
 
 v1.0 was published in the VEE 2013 paper. 
