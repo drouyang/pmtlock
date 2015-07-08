@@ -10,16 +10,17 @@ for virtual environments. It addresses the lock waiter preemption problem in
 ticket spinlocks, where a lock waiter in a FIFO queue is preempted and later
 waiters have to busy-wait even if the lock is already released.
 
-Pmtlock sacrifice fairness to ensure forward progress upon and only upon lock
-waiter preemption by allowing waiters to acquire locks out of order when
-waiting longer than a threashold, which indicates one or more earlier waiters
-have been preempted.  The timeout threshold of each waiter is propotional to
-the number of previous waiters. As a result, fairness is largely preserved.
+The intuition of pmtlock is to sacrifice fairness to ensure forward progress
+only when lock waiter preemption happens. This goal is achieved by allowing
+waiters to acquire locks out of order when waiting longer than a threashold,
+which indicates one or more earlier waiters have been preempted. The timeout
+threshold of each waiter is propotional to the number of previous waiters. As a
+result, fairness is largely preserved.
 
 For more details, please refer to our paper "[Preemptable Ticket Spinlocks:
 Improving Consolidated Performance in the
 Cloud](http://www.cs.pitt.edu/~ouyang/files/publication/preemptable_lock-ouyang-vee13.pdf)"
-In Proceedings of the 9th ACM SIGPLAN/SIGOPS International Conference on
+in proceedings of the 9th ACM SIGPLAN/SIGOPS International Conference on
 Virtual Execution Environments (VEE '13).
 
 # V3.0 Patch 
