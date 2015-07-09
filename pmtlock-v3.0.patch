@@ -1,0 +1,180 @@
+diff --git a/arch/x86/include/asm/spinlock.h b/arch/x86/include/asm/spinlock.h
+index 64b6117..4b7cfa6 100644
+--- a/arch/x86/include/asm/spinlock.h
++++ b/arch/x86/include/asm/spinlock.h
+@@ -62,7 +62,17 @@ static inline void __ticket_unlock_kick(arch_spinlock_t *lock,
+ #endif /* CONFIG_PARAVIRT_SPINLOCKS */
+ static inline int  __tickets_equal(__ticket_t one, __ticket_t two)
+ {
+-	return !((one ^ two) & ~TICKET_SLOWPATH_FLAG);
++	return one == two;
++}
++
++extern u64 pmtlock_timeout_shift;
++static inline u64 __timeout_threshold(__ticket_t head, __ticket_t tail)
++{
++	// can detect LHP or LWP here by check LOCK_HOLD_FLAG on head,
++	// optimization??  
++	// the (__ticket_t) trick handles tail wraparound case
++	// e.g. (unsigned char)(1 - 255) = 2
++	return (__ticket_t)(tail - head) << pmtlock_timeout_shift;
+ }
+ 
+ static inline void __ticket_check_and_clear_slowpath(arch_spinlock_t *lock,
+@@ -102,24 +112,36 @@ static __always_inline int arch_spin_value_unlocked(arch_spinlock_t lock)
+ static __always_inline void arch_spin_lock(arch_spinlock_t *lock)
+ {
+ 	register struct __raw_tickets inc = { .tail = TICKET_LOCK_INC };
++ 	u64 timeout = 0;
++ 	__ticket_t current_head;
+ 
+ 	inc = xadd(&lock->tickets, inc);
+-	if (likely(inc.head == inc.tail))
+-		goto out;
++	if (likely(__tickets_equal(inc.head, inc.tail)))
++		goto spin;
++
++
++	timeout = __timeout_threshold(inc.head, inc.tail);
++	do {
++		current_head = ACCESS_ONCE(lock->tickets.head);
++		if (__tickets_equal(current_head, inc.tail)) {
++			goto spin;
++		} else if (!__tickets_equal(current_head, inc.head) && ((__ticket_st)(inc.tail - current_head) > 0)) {
++			// dynamic timout update when ticket head is updated. 
++			// This is complication, may not be necessary
++			// (s16)(tail - head) > 0 to filtered out waked up lock holder
++			inc.head = current_head;
++			timeout = __timeout_threshold(inc.head, inc.tail);
++		}
++		cpu_relax();
++	} while (timeout--);
+ 
++spin:
+ 	for (;;) {
+-		unsigned count = SPIN_THRESHOLD;
+-
+-		do {
+-			inc.head = READ_ONCE(lock->tickets.head);
+-			if (__tickets_equal(inc.head, inc.tail))
+-				goto clear_slowpath;
+-			cpu_relax();
+-		} while (--count);
+-		__ticket_lock_spinning(lock, inc.tail);
+-	}
+-clear_slowpath:
+-	__ticket_check_and_clear_slowpath(lock, inc.head);
++		if (xchg(&lock->acquired, 1) == 0)
++			goto out;
++		cpu_relax();
++ 	}
++
+ out:
+ 	barrier();	/* make sure nothing creeps before the lock is taken */
+ }
+@@ -128,47 +150,40 @@ static __always_inline int arch_spin_trylock(arch_spinlock_t *lock)
+ {
+ 	arch_spinlock_t old, new;
+ 
+-	old.tickets = READ_ONCE(lock->tickets);
+-	if (!__tickets_equal(old.tickets.head, old.tickets.tail))
++	*(__ticketfull_t *)&old = ACCESS_ONCE(*(__ticketfull_t *)lock);
++
++	if (old.tickets.head != old.tickets.tail)
++		return 0;
++	if (ACCESS_ONCE(lock->acquired) == 1)
+ 		return 0;
+ 
+-	new.head_tail = old.head_tail + (TICKET_LOCK_INC << TICKET_SHIFT);
+-	new.head_tail &= ~TICKET_SLOWPATH_FLAG;
++	new.head_tail = old.head_tail + (1 << TICKET_SHIFT);
++	new.acquired = 1;
+ 
+ 	/* cmpxchg is a full barrier, so nothing can move before it */
+-	return cmpxchg(&lock->head_tail, old.head_tail, new.head_tail) == old.head_tail;
++	if (cmpxchg((__ticketfull_t *)lock, *(__ticketfull_t *)&old,
++		*(__ticketfull_t *)&new) == *(__ticketfull_t *)&old) {
++		return 1;
++	} else return 0;
+ }
+ 
+ static __always_inline void arch_spin_unlock(arch_spinlock_t *lock)
+ {
+-	if (TICKET_SLOWPATH_FLAG &&
+-		static_key_false(&paravirt_ticketlocks_enabled)) {
+-		__ticket_t head;
+-
+-		BUILD_BUG_ON(((__ticket_t)NR_CPUS) != NR_CPUS);
+-
+-		head = xadd(&lock->tickets.head, TICKET_LOCK_INC);
+-
+-		if (unlikely(head & TICKET_SLOWPATH_FLAG)) {
+-			head &= ~TICKET_SLOWPATH_FLAG;
+-			__ticket_unlock_kick(lock, (head + TICKET_LOCK_INC));
+-		}
+-	} else
+-		__add(&lock->tickets.head, TICKET_LOCK_INC, UNLOCK_LOCK_PREFIX);
++	__add(&lock->tickets.head, 1, UNLOCK_LOCK_PREFIX);
++	xchg(&lock->acquired, 0);
+ }
+ 
+ static inline int arch_spin_is_locked(arch_spinlock_t *lock)
+ {
+ 	struct __raw_tickets tmp = READ_ONCE(lock->tickets);
+ 
+-	return !__tickets_equal(tmp.tail, tmp.head);
++	return !__tickets_equal(tmp.tail, tmp.head) || (ACCESS_ONCE(lock->acquired)==1);
+ }
+ 
+ static inline int arch_spin_is_contended(arch_spinlock_t *lock)
+ {
+ 	struct __raw_tickets tmp = READ_ONCE(lock->tickets);
+ 
+-	tmp.head &= ~TICKET_SLOWPATH_FLAG;
+ 	return (__ticket_t)(tmp.tail - tmp.head) > TICKET_LOCK_INC;
+ }
+ #define arch_spin_is_contended	arch_spin_is_contended
+diff --git a/arch/x86/include/asm/spinlock_types.h b/arch/x86/include/asm/spinlock_types.h
+index 5f9d757..4bc1b0f 100644
+--- a/arch/x86/include/asm/spinlock_types.h
++++ b/arch/x86/include/asm/spinlock_types.h
+@@ -14,9 +14,15 @@
+ #if (CONFIG_NR_CPUS < (256 / __TICKET_LOCK_INC))
+ typedef u8  __ticket_t;
+ typedef u16 __ticketpair_t;
++typedef u16 __acquired_t;
++typedef s8 __ticket_st;
++typedef u32 __ticketfull_t;
+ #else
+ typedef u16 __ticket_t;
+ typedef u32 __ticketpair_t;
++typedef u32 __acquired_t;
++typedef s16 __ticket_st;
++typedef u64 __ticketfull_t;
+ #endif
+ 
+ #define TICKET_LOCK_INC	((__ticket_t)__TICKET_LOCK_INC)
+@@ -30,6 +36,7 @@ typedef struct arch_spinlock {
+ 			__ticket_t head, tail;
+ 		} tickets;
+ 	};
++	__acquired_t acquired;
+ } arch_spinlock_t;
+ 
+ #define __ARCH_SPIN_LOCK_UNLOCKED	{ { 0 } }
+diff --git a/kernel/locking/spinlock.c b/kernel/locking/spinlock.c
+index db3ccb1..c28491c 100644
+--- a/kernel/locking/spinlock.c
++++ b/kernel/locking/spinlock.c
+@@ -21,6 +21,11 @@
+ #include <linux/debug_locks.h>
+ #include <linux/export.h>
+ 
++// timeout threshold for waiter N = N * 2 ^ pmtlock_timeout_shift
++// the larger the shift is, the more fairer pmtlock is
++u64 pmtlock_timeout_shift = 8;
++EXPORT_SYMBOL(pmtlock_timeout_shift);
++
+ /*
+  * If lockdep is enabled then we use the non-preemption spin-ops
+  * even on CONFIG_PREEMPT, because lockdep assumes that interrupts are
