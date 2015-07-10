@@ -141,7 +141,7 @@ static int __init fairness_init(void)
 	thread_num = num_online_cpus();
 	lock_num = 100000 * thread_num;
 
-	printk("[fairness] created of %d kthread on %d cores\n", thread_num, thread_num);
+	printk("[fairness] created of %d kthreads on %d cores\n", thread_num, thread_num);
 
 	for(i = 0; i < thread_num; i++) {
 		tasks[i] = kthread_create(measure_lock, (void*)i, "KTHREAD %lld", i);
