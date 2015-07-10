@@ -1,6 +1,7 @@
 /**
- * Authors 
- * Qihang Chen, Jianna Ouyang (ouyang@cs.pitt.edu)
+ * Authors:
+ * Qihang Chen
+ * Jianna Ouyang (ouyang@cs.pitt.edu)
  *
  * Methodology
  * N kernel threads on N cores competing for the same lock, the distribution of
@@ -22,19 +23,18 @@
 unsigned long long lock_selected = SYSTEM_SPINLOCK;
 //unsigned long long lock_selected = NAIVE_SPINLOCK;
 
-// number of conccurent kthread
-#define THREAD_NUM 6
-
+#define THREAD_MAX 8192
 
 unsigned char naive_lock;
 spinlock_t lock;
 
-int LOCK_NUM = 100000 * THREAD_NUM;
-int lock_cnts[THREAD_NUM];
+int lock_num = 0;
+int thread_num = 0;
+int lock_cnts[THREAD_MAX];
 int lock_aquired = 0;
-struct task_struct* tasks[THREAD_NUM];
+struct task_struct* tasks[THREAD_MAX];
 
-int flag[THREAD_NUM] = {0};
+int flag[THREAD_MAX] = {0};
 
 int finish = 0;
 spinlock_t finish_lock;
@@ -66,14 +66,14 @@ void join(void) {
 	thread_cnt++;
 	spin_unlock(&thread_cnt_lock);
 
-	while (ACCESS_ONCE(thread_cnt) != THREAD_NUM);
+	while (ACCESS_ONCE(thread_cnt) != thread_num);
 }
 
 void measure_naive_spinlock(unsigned long long thread_id) {
 
 	join();
 
-	while(lock_aquired < LOCK_NUM){
+	while(lock_aquired < lock_num){
 		naive_spin_lock(&naive_lock);
 		lock_aquired++;
 		naive_spin_unlock(&naive_lock);
@@ -86,7 +86,7 @@ void measure_spinlock(unsigned long long thread_id) {
 
 	join();
 
-	while(lock_aquired < LOCK_NUM){
+	while(lock_aquired < lock_num){
 		spin_lock_irqsave(&lock,flags);
 		lock_aquired++;
 		while (n_spin--);
@@ -110,7 +110,7 @@ int measure_lock(void* thread_no){
 		finish = 1;
 		spin_unlock(&finish_lock);
 		do_gettimeofday(&end);
-		for(i = 0; i < THREAD_NUM; i++)
+		for(i = 0; i < thread_num; i++)
 			if(i != (unsigned long long )thread_no) 
 				kthread_stop(tasks[i]);
 		while(!kthread_should_stop()){
@@ -137,13 +137,19 @@ static int __init fairness_init(void)
 	spin_lock_init(&thread_cnt_lock);
 	spin_lock_init(&finish_lock);
 	naive_lock = 0;
-	for(i = 0; i < THREAD_NUM; i++) {
+
+	thread_num = num_online_cpus();
+	lock_num = 100000 * thread_num;
+
+	printk("[fairness] created of %d kthread on %d cores\n", thread_num, thread_num);
+
+	for(i = 0; i < thread_num; i++) {
 		tasks[i] = kthread_create(measure_lock, (void*)i, "KTHREAD %lld", i);
-		kthread_bind(tasks[i], i % THREAD_NUM);
+		kthread_bind(tasks[i], i % thread_num);
 	}
 
 	do_gettimeofday(&start);
-	for(i = 0; i < THREAD_NUM; i++)
+	for(i = 0; i < thread_num; i++)
 		if (!IS_ERR(tasks[i])) wake_up_process(tasks[i]);
 	return 0;
 }
@@ -151,7 +157,7 @@ static int __init fairness_init(void)
 static void __exit fairness_exit(void)
 {
 	int i;
-	for(i = 0; i < THREAD_NUM; i++){
+	for(i = 0; i < thread_num; i++){
 		if(!flag[i]) 
 			kthread_stop(tasks[i]);
 		printk("[fairness] thread %d: %d\n", i, lock_cnts[i]);
