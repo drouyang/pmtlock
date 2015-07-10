@@ -2,8 +2,7 @@
 *.cmd
 Module.symvers
 modules.order
-pmtlock.ko
-pmtlock.mod.c
+*.mod.c
 .tmp_versions/
 *.ko
 *.d

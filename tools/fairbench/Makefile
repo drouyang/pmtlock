@@ -5,6 +5,6 @@ all:
 clean:
 	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) clean
 install: all
-	sudo insmod fairness.ko
+	sudo insmod fairbench.ko
 remove:
-	sudo rmmod fairness
+	sudo rmmod fairbench
