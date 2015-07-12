@@ -14,8 +14,10 @@ g
 Caculate fairness index of every N values
 """
 import sys
+import multiprocessing
 
-N = 6
+
+N = multiprocessing.cpu_count()
 i = 0
 
 sum = 0
