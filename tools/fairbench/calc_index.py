@@ -18,6 +18,8 @@ import multiprocessing
 
 
 N = multiprocessing.cpu_count()
+if N > 8:
+	N = 8
 i = 0
 
 sum = 0

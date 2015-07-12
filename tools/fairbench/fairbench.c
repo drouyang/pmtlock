@@ -138,7 +138,7 @@ static int __init fairness_init(void)
 	spin_lock_init(&finish_lock);
 	naive_lock = 0;
 
-	thread_num = num_online_cpus();
+	thread_num = num_online_cpus() <= 8? num_online_cpus(): 8;
 	lock_num = 100000 * thread_num;
 
 	printk("[fairness] created of %d kthreads on %d cores\n", thread_num, thread_num);
