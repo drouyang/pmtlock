@@ -3,7 +3,7 @@ Jiannan Ouyang
 ouyang@cs.pitt.edu
 
 # Introduction 
-Current stable:  **pmtlock-lt** (Linux 3.12+), 07/2015
+Current stable:  **pmtlock-v3.0.patch** (Linux 3.12+), 07/2015
 
 Preemptable ticket spinlock (pmtlock) is a novel spinlock algorithm designed
 for virtual environments. It addresses the lock waiter preemption problem in
@@ -23,29 +23,28 @@ Cloud](http://dl.acm.org/citation.cfm?id=2451549)"
 in proceedings of the 9th ACM SIGPLAN/SIGOPS International Conference on
 Virtual Execution Environments (VEE '13).
 
-# V3.0 Patch 
-### pmtlock v3.0 (Linux 3.12+, tested on Linux 4.0)
-* pmtlock-v3.0.patch
-
-### pmtlock-lt
-Optimized lightweight pmtlock implementation.
-
-pmtlock-lt = pmtlock-compact + pmtlock-static
-
-* 1-pmtlock-compact.patch: reduced lock size
-* 2-pmtlock-static.patch: static timeout threshold update, this patch depends on 1-pmtlock-compact.patch
-
 # Tools
+* fairbench: spinlock fairness benchmark. It creates N kthreads on N cores
+  competing for the same lock, and reports the lock acquisition distribution
+as well as the time consumed.
 * parameter: online tuning of the timeout parameter
-* lock\_fairness: create N kthreads on N cores, competing for the same lock and report lock acquisition distribution and the time consumed.
 * overhead: measure average lock/unlock latency
 
 ## Updates
 
 ### 07/08/2015
-pmtlock-lt: ported pmtlock to Linux 4.0.5, compatible with Linux 3.12+ (pmtlock-v3.0),
-augmented with an optimized lightweight implementation (pmtlock-lt). Added new kernel modules for
-evaluation.
+Added pmtlock-v3.0, supports Linux 3.12+, tested on Linux 4.0.
+
+v3.0 patches adopts a compact implementation (pmt-cpt), plus a statc timeout
+update scheme (pmt-cpt-st).  Those improvements reduce the pmtlock size by
+half, yields a simpler implementation, while ensuring the same level of
+performance and fairness comparing to v2.0 implementation.
+
+* pmt.patch: ported v2.0 to linux 3.12+ 
+* pmt-cpt.patch: reduced lock size
+* pmt-cpt-st.patch (pmtlock-v3.0.patch): reduce lock size, plus static timeout threshold update.
+
+Added fairbench for spinlock fairness evaluation.
 
 ### 11/22/2013
 Linux kernel 3.12 upstreamed the paravirt ticket spinlock patch, which changes
