@@ -24,11 +24,11 @@ in proceedings of the 9th ACM SIGPLAN/SIGOPS International Conference on
 Virtual Execution Environments (VEE '13).
 
 # Tools
-* fairbench: spinlock fairness benchmark. It creates N kthreads on N cores
+* kernel-modules/fairbench: spinlock fairness benchmark. It creates N kthreads on N cores
   competing for the same lock, and reports the lock acquisition distribution
 as well as the time consumed.
-* parameter: online tuning of the timeout parameter
-* overhead: measure average lock/unlock latency
+* kernel-modules/parameter: online tuning of the timeout parameter
+* kernel-modules/overhead: measure average lock/unlock latency
 
 ## Updates
 
